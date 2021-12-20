@@ -1,0 +1,1156 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "celltoolbar": "Slideshow",
+    "kernelspec": {
+      "display_name": "Python 3",
+      "language": "python",
+      "name": "python3"
+    },
+    "language_info": {
+      "codemirror_mode": {
+        "name": "ipython",
+        "version": 3
+      },
+      "file_extension": ".py",
+      "mimetype": "text/x-python",
+      "name": "python",
+      "nbconvert_exporter": "python",
+      "pygments_lexer": "ipython3",
+      "version": "3.7.4"
+    },
+    "colab": {
+      "name": "2.1-a-first-look-at-a-neural-network.ipynb",
+      "provenance": [],
+      "collapsed_sections": [
+        "NNv47DV5mi6E",
+        "QlSxCZG_mi6E"
+      ]
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "VJICZWiBmi6B"
+      },
+      "source": [
+        "import keras\n",
+        "keras.__version__\n",
+        "\n",
+        "# Get rid of warnings due to different Keras versions...\n",
+        "import os\n",
+        "os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'"
+      ],
+      "execution_count": 1,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "u930Tne7mi6D"
+      },
+      "source": [
+        "# A first look at a neural network\n",
+        "\n",
+        "This notebook contains the code samples found in Chapter 2, Section 1 of [Deep Learning with Python](https://www.manning.com/books/deep-learning-with-python?a_aid=keras&a_bid=76564dff) and is adapted from [https://github.com/fchollet/deep-learning-with-python-notebooks](https://github.com/fchollet/deep-learning-with-python-notebooks) as well as [https://keras.io/guides](https://keras.io/guides). Note that the original text features far more content, in particular further explanations and figures: in this notebook, you will only find source code and related comments.\n",
+        "\n",
+        "----\n",
+        "\n",
+        "We will now take a look at a first concrete example of a neural network, which makes use of the Python library Keras to learn to classify hand-written digits.\n",
+        "\n",
+        "The problem we are trying to solve here is to classify grayscale images of handwritten digits (28 pixels by 28 pixels), into their 10 \n",
+        "categories (0 to 9). The dataset we will use is the MNIST dataset, a classic dataset in the machine learning community, which has been \n",
+        "around for almost as long as the field itself and has been very intensively studied. It's a set of 60,000 training images, plus 10,000 test images, assembled by the National Institute of Standards and Technology (the NIST in MNIST) in the 1980s. You can think of \"solving\" MNIST as the \"Hello World\" of deep learning -- it's what you do to verify that your algorithms are working as expected. As you become a machine learning practitioner, you will see MNIST come up over and over again, in scientific papers, blog posts, and so on."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "i7lyyTXlmi6D"
+      },
+      "source": [
+        "The MNIST dataset comes pre-loaded in Keras, in the form of a set of four Numpy arrays:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "bKocG-cYmi6D"
+      },
+      "source": [
+        "from keras.datasets import mnist\n",
+        "\n",
+        "(train_images, train_labels), (test_images, test_labels) = mnist.load_data()"
+      ],
+      "execution_count": 58,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "8SlIpXdrmi6D"
+      },
+      "source": [
+        "`train_images` and `train_labels` form the \"training set\", the data that the model will learn from. The model will then be tested on the \n",
+        "\"test set\", `test_images` and `test_labels`. Our images are encoded as Numpy arrays, and the labels are simply an array of digits, ranging \n",
+        "from 0 to 9. There is a one-to-one correspondence between the images and the labels.\n",
+        "\n",
+        "Let's have a look at the training data:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "DPDjB8s6mi6D",
+        "outputId": "54cd77f1-d61c-45cc-9602-e801c7f1e151"
+      },
+      "source": [
+        "print(train_images.ndim)\n",
+        "print(train_images.dtype)\n",
+        "train_images.shape"
+      ],
+      "execution_count": 3,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "3\n",
+            "uint8\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "(60000, 28, 28)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 3
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "o-frIKSVmi6D",
+        "outputId": "3ec23a3b-864b-499c-92d7-9673e87d666b"
+      },
+      "source": [
+        "len(train_labels)"
+      ],
+      "execution_count": 4,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "60000"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 4
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "BH0H8xw-mi6D",
+        "outputId": "0ec1af7b-161d-479b-b844-54d4b7db6013"
+      },
+      "source": [
+        "train_labels"
+      ],
+      "execution_count": 5,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array([5, 0, 4, ..., 5, 6, 8], dtype=uint8)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 5
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "GvBcAhrEmi6D"
+      },
+      "source": [
+        "Let's have a look at the test data:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "lsB_LHPLmi6D",
+        "outputId": "042e34ef-62c6-4e59-d7e0-d62595f312b4"
+      },
+      "source": [
+        "print(test_images.shape)\n",
+        "print(len(test_labels))\n",
+        "test_labels"
+      ],
+      "execution_count": 6,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "(10000, 28, 28)\n",
+            "10000\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array([7, 2, 1, ..., 4, 5, 6], dtype=uint8)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 6
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 265
+        },
+        "id": "DIPCRQf5mi6E",
+        "outputId": "f8f7c6cc-4dbb-4c68-8145-a6e9aa184a82"
+      },
+      "source": [
+        "import matplotlib.pyplot as plt\n",
+        "%matplotlib inline\n",
+        "\n",
+        "digit = train_images[4]\n",
+        "plt.imshow(digit, cmap=plt.cm.binary)\n",
+        "plt.show()"
+      ],
+      "execution_count": 7,
+      "outputs": [
+        {
+          "output_type": "display_data",
+          "data": {
+            "image/png": "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\n",
+            "text/plain": [
+              "<Figure size 432x288 with 1 Axes>"
+            ]
+          },
+          "metadata": {
+            "tags": [],
+            "needs_background": "light"
+          }
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "OFujWyAZmi6E"
+      },
+      "source": [
+        "Our workflow will be as follow: first we will present our neural network with the training data, `train_images` and `train_labels`. The \n",
+        "network will then learn to associate images and labels. Finally, we will ask the network to produce predictions for `test_images`, and we \n",
+        "will verify if these predictions match the labels from `test_labels`."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "NNv47DV5mi6E"
+      },
+      "source": [
+        "### Activation functions\n",
+        "There are several [activation functions](https://keras.io/api/layers/activations/) coded into TF/Keras that you can call by name, e.g.:\n",
+        "- `relu` $max(x, 0)$, `elu`, `selu`,...\n",
+        "- `sigmoid` $1 / (1 + exp(-x))$, `tanh`, `exponential`\n",
+        "- `softplus`, `softsign`,...\n",
+        "- `softmax`\n",
+        "\n",
+        "Of course, you'd first use weights&biases to act on the output of the previous layer `dot(W,input)+b`."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "Reme9R8_pe9T"
+      },
+      "source": [
+        "import tensorflow as tf\n",
+        "import numpy as np"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "HizlpQIfmi6E",
+        "outputId": "272b9a69-580f-473b-9419-0cb612bfd1e6"
+      },
+      "source": [
+        "foo = tf.constant([-10, -5, 0.0, 5, 10], dtype = tf.float32)\n",
+        "bar=tf.keras.activations.relu(foo).numpy()\n",
+        "# bar=tf.keras.activations.relu(foo,threshold=6).numpy()\n",
+        "print(bar)"
+      ],
+      "execution_count": 18,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "[-0. -0.  0.  0. 10.]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 267
+        },
+        "id": "PuHwi5iYpaZU",
+        "outputId": "653bb273-2586-42ec-930b-37e67aa2083a"
+      },
+      "source": [
+        "foo = tf.constant(np.arange(-5.0, 5.0, 0.01), dtype = tf.float32)\n",
+        "\n",
+        "plt.figure(1)\n",
+        "plt.subplot(311)\n",
+        "bar=tf.keras.activations.sigmoid(foo).numpy()\n",
+        "plt.plot(foo, bar)\n",
+        "plt.subplot(312)\n",
+        "bar=tf.keras.activations.relu(foo).numpy()\n",
+        "plt.plot(foo, bar)\n",
+        "plt.subplot(313)\n",
+        "bar=tf.keras.activations.softplus(foo).numpy()\n",
+        "plt.plot(foo, bar)\n",
+        "plt.show()"
+      ],
+      "execution_count": 29,
+      "outputs": [
+        {
+          "output_type": "display_data",
+          "data": {
+            "image/png": "iVBORw0KGgoAAAANSUhEUgAAAXQAAAD6CAYAAACxrrxPAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAADh0RVh0U29mdHdhcmUAbWF0cGxvdGxpYiB2ZXJzaW9uMy4yLjIsIGh0dHA6Ly9tYXRwbG90bGliLm9yZy+WH4yJAAAgAElEQVR4nO3deXRc9X338fd3Vu37ai2Wd1t497AHsNmCjTGrScgTWpqex2kKp+EJaRqgbbqlTZtz2uR5kjbHJUnDkzxJMWYxBBIgYQlrLHnfd1sjS7L2XZrt9/wxIyMb2ZblO7qj0fd1zpy5m+58L4gPV/f+5nvFGINSSqmJz2F3AUoppayhga6UUklCA10ppZKEBrpSSiUJDXSllEoSGuhKKZUkLhjoIvIjETklIrvOsV5E5H+LyCER2SEiS60vUyml1IW4RrHNfwHfA54+x/qVwKzY60rgP2Lv51VQUGCqqqpGVaRSSqmo2traFmNM4UjrLhjoxph3RKTqPJvcCTxtot9Q+lBEckSk1BjTcL79VlVVUVNTc6GPV0opNYyIHD/XutGcoV9IGVA3bN4fW3beQFdKqUQVCkcYDA29wgRCEQKhCKGIIRQ2hCLR6WA4Qvj0MkMoHNsmEvnksmHzy+cUsaA82/K6rQj0URORdcA6gMrKyvH8aKVUkjDG0B8M09kfpHsgRO9giP5AmN5AmL5AiN7B6HtfIExvILZu2LLBUJjBWEAPBfZgMEIgHGEwGJ2PxLkjSk66J2EDvR6oGDZfHlv2CcaY9cB6AJ/Pp01klJrkAqEIbb0BWnoGaekZpLUnQGvvIO19Qbr6g3T2B+kaCEXfh14DQYLh0cWHx+Ug3eMkzeMizeMkzePE63KS4XXhTXfgcTnwupx4XQ68rrPm3Q48Tgded3Te7XTgdgpOhwOXU3A5BNewabfTgdMhH2/jkNi6s6Zj28eDFYG+CXhERH5B9GZo54Wunyulkls4YjjVPcDJjgEaOwdo6OyPTnf109wdDe6WnkG6BkIj/rzLIWSnusmKvbJT3VTkppIdmx5alpniIj0W1uleF6keZ3Te6yTN7cTlnFwjsy8Y6CLyc2A5UCAifuAbgBvAGPMD4BVgFXAI6AP+KF7FKqUSgzGGjr4gx1p7Od7aF3v1crytj4aOfpq6Bwmfdd0i1e2kNDuFwkwv80qzKMjwkJ/hJT/DQ366l8LM6HtehodMrwuR+JzFJrPRjHJ54ALrDfCwZRUppRJGJGLwt/ezv6mbA7HX0ZZejrX0fuLsekp2CpX5aVw1I58p2amUZKcwJSeF0uxUSrNTyE51a0jH2bjeFFVKJa7ewRC7T3axw9/BvsZoeB9s6qE/GD69TVlOKtML07lzcRlT89Ooyk9nan4aFXlppLidNlavQANdqUlpIBhm98kudvo72FHfyU5/J4eaexh63k1hppc5xZk8cEUls4szmF2SyayiDDJT3PYWrs5LA12pSaCzP8iW4+38/lgbm4+2scPfSSAcAaLhvag8m9ULp7CwPJv5ZdkUZnptrliNhQa6UkmodzDEh0da+d3BFj462sa+xi6MiY4emV+WzUPXVrFsai6LynMozvLqte0koYGuVBKIRAy7T3bxzsFmfnewmdrj7QTDhhS3A9/UPB69aTaXT8tlSUUuqR691p2sNNCVmqAGgmHePdjCa3sa+e2+U7T0BACoLs3iC5+axvWzClk2NVdvVk4iGuhKTSDtvQF+s+8Ur+9p5J0DLfQHw2SmuFgxp4gVcwv51MxCvf49iWmgK5XgugeCvLa7iRe3n+S9Qy2EI4aSrBTuW1bOrZcVc+W0fDyuyfWNSDUyDXSlEtBAMMyb+06xaftJfrvvFIOhCGU5qay7fjor55ewoCxbb2SqT9BAVypBGGPYWtfBM5vr+OWOBroHQxRkePjs5RWsWVzG0socDXF1XhroStmstWeQ57fW89+b6zh4qodUt5NVC0q5a8kUrp6eP+kaTKmx00BXygaRiOGdg8389+Y63tjbRDBsWFyRwz/ds4DVC0v1G5lqTDTQlRpHnX1BNtTW8fQHxznR1kdeuoc/uLqKz1xeweziTLvLUxOcBrpS42BfYxc/ef84L2ytpz8Y5vKqXL766TncdlmJjlBRltFAVypOQuEIr+9p4r/eP8ZHR9vwuhzctbiMB6+eyvwy6x8/ppQGulIWGwiG2VDrZ/07h6lr66csJ5Wvr5zLZ3wV5KZ77C5PJTENdKUs0j0Q5KcfnuCH7x6lpWeQxRU5PLmqmluqi3HG6RmSSg2nga7UJWrpGeTH7x3l6Q+O0z0Q4rpZBXxp+WKunp6v48bVuNJAV2qM/O19/Oc7R/jF5joC4Qi3XVbCl5bPYGF5jt2lqUlKA12pi3SwqZv/ePswm7adBODuJWV88YYZzCzKsLkyNdlpoCs1StvqOvj3Nw/x2p4mUt1OHrx6Kv/zuulMyUm1uzSlgFEGuojcBnwXcAJPGWO+ddb6h4BvA/WxRd8zxjxlYZ1K2cIYw3uHWvn3tw7x/uFWslPd/NlNs3jomirydMSKSjAXDHQRcQLfB24B/MBmEdlkjNlz1qb/bYx5JA41KjXuIhHDa3sa+fe3DrPD30lRppcnV83jgSsryfDqH7YqMY3mN/MK4JAx5giAiPwCuBM4O9CVmvCC4QgvbK3nB28f5nBzL1Pz0/jHuxdw77IyvC598o9KbKMJ9DKgbti8H7hyhO3uFZHrgQPA/zLG1J29gYisA9YBVFZWXny1SsVJfyDMLzaf4D/fOcLJzgHmlWbxfx5YwqoFpTqGXE0YVv3t+BLwc2PMoIh8EfgJcOPZGxlj1gPrAXw+n7Hos5Uas86+IE9/cIwfv3+Mtt4AV1Tl8c17FrB8dqGOIVcTzmgCvR6oGDZfzsc3PwEwxrQOm30K+JdLL02p+DnVNcAP3z3KTz88Tm8gzI1zi/jT5TPwVeXZXZpSYzaaQN8MzBKRaUSD/LPA54ZvICKlxpiG2OwaYK+lVSplkaMtvax/5wgbt/gJhSOsXjiFLy2fwbzSLLtLU+qSXTDQjTEhEXkE+DXRYYs/MsbsFpG/A2qMMZuAPxORNUAIaAMeimPNSl20Hf4OfvD2YV7d1Yjb6eC+ZeV88frpTM1Pt7s0pSwjxthzKdvn85mamhpbPltNDsYYfnewhR+8fZj3D7eSmeLiwaum8tC1VRRlpthdnlJjIiK1xhjfSOt0QK1KOqFwhFd3NfKDtw+z+2QXxVlenlg1lweuqNRHu6mkpoGukkbPYIgNNXX8+L1jnGjrY3phOv987wLuWqJjyNXkoIGuJrwTrX381/vHeKamjp7BEEsrc3hi1TxurS7GoWPI1SSiga4mJGMMHxxp5cfvHeONvU04Rbh9YSl/dO00Fldo+1o1OWmgqwmldzDEpu0n+cn7x9jX2E1euoeHl8/kwaunUpylNzrV5KaBriaEXfWd/L/fn+DFrfX0BsLMLcnkX+5dyJrFU0hx6/VxpUADXSWwobPxn//+BDv8nXhdDlYvnMLnrqxkaWWOfjVfqbNooKuEEokYPjzayvNb6nl1VyM9gyFmF2fwN3dUc/eScrLTdNihUueiga4SwsGmbp7bWs+LW+s52TlAusfJygWlPHBFBUsrc/VsXKlR0EBXtqlr6+NXuxp5cXs9u+q7cDqE62YV8Bcr53JrdQmpHr02rtTF0EBX4+pIcw+v7mrkV7sa2VnfCcCCsmz+anU1axZNoTDTa3OFSk1cGugqrsIRww5/B2/ub+a13Y3sa+wGYHFFDo+vnMvK+aVU5qfZXKVSyUEDXVmuvTfAOwebeWt/M28faKatN4BDYNnUXP56dTW3zS9hSk6q3WUqlXQ00NUl6x0MUXO8nQ+PtPLB4VZ2+DuIGMhL97B8diE3zCnk+lmF5KZ77C5VqaSmga4uWvdAkG11HcMCvJNQxOByCIsqcnjkxlncOLeIBWXZ+jxOpcaRBro6r1A4woGmHrbVdbD1RDvb6jo41NyDMeB0CAvLs1l3/XSump6PryqXNI/+SillF/2vT53WHwizv6mbvQ1d7GvoYm9DNzvrO+kPhgHITXOzuCKH1QunsKQyh2VTc0n36q+QUolC/2uchPoCIY629HKkOfo6EAvxo629DD3AKt3jZE5JJp+5vILFFTksqcyhMi9Nv+CjVALTQE9Cxhi6+kP4O/qob+/nRFsfR1t6T4d4Y9fAGdtX5qUxrzSTOxZNYV5pFtWlWZTnpmovcaUmGA30CSYSMXT2B2nuGaS5O/o62dlPfXs/Jzv6qe+ITvcGwmf8XHaqm+mF6VwzM58ZhRlMK0hnWkE6Vfnp+o1MpZLEqAJdRG4Dvgs4gaeMMd86a70XeBpYBrQCnzHGHLO21OQ0EAzT0Rekoz9AZ1+Qjv5g7D1AR1+Q1p7AGeHd0jNIKPLJB3vnpLkpy0mlKj+da2YUUJ6bSllOKmW5qZTnppGnQwaVSnoXDHQRcQLfB24B/MBmEdlkjNkzbLM/BtqNMTNF5LPAPwOfiUfBdjHGMBiKRF/BcGw6zEAwQn8wTM9giL7BML2Doeh0IETPYDj2HlsXm+4dDNHZH6SjL8hgKHLOz3Q5hPwMD4WZXgoyvMwtyaQw0/vxK8NLQaaX4qwUMvTmpFKT3mhS4ArgkDHmCICI/AK4Exge6HcCfxObfhb4noiIMeaTp5KX6NCpbnaf7CIYNoTCEUKRYe/Dp8OGYCRCOBxdHgxHCEcMwbAhHIkQjG07tCwwLKAHQ+HT4T0QC+/AeYL3XNxOId3rIt3jIt3rJM3jIsProijTS06qh5w0N9lp7o+nU6OvnDQ3OWke0j1OvQmplBq10QR6GVA3bN4PXHmubYwxIRHpBPKBFiuKHO43e0/xT6/uu+B2DgGX04HLIbgcgtvpwBl7dzklOu2ITrscgtflJN3rIi/dgdflxOuOvbscp6dThi9zOfC6o9Npno/DOt3rjAW4C4/LYfXhK6XUOY3r3+kisg5YB1BZWTmmfdzvq+CW6mJcw8LY5Rw27YiGuI7QUEpNNqMJ9HqgYth8eWzZSNv4RcQFZBO9OXoGY8x6YD2Az+cb0+WY3HSP9gRRSqkRjCbQNwOzRGQa0eD+LPC5s7bZBPwh8AFwH/DbC10/r62tbRGR4xdfsu0KiMOlpASnxzw5TLZjnqjHO/VcKy4Y6LFr4o8AvyY6bPFHxpjdIvJ3QI0xZhPwQ+D/isghoI1o6F9ov4WjrT6RiEiNMcZndx3jSY95cphsx5yMxzuqa+jGmFeAV85a9tfDpgeAtdaWppRS6mLoMAyllEoSGugXb73dBdhAj3lymGzHnHTHK3H47o9SSikb6Bm6UkolCQ10pZRKEhrol0BEHhMRIyIFdtcSTyLybRHZJyI7ROR5Ecmxu6Z4EZHbRGS/iBwSka/bXU+8iUiFiLwpIntEZLeIfNnumsaLiDhFZKuIvGx3LVbRQB8jEakAbgVO2F3LOHgdmG+MWQgcAB63uZ64GNZZdCVQDTwgItX2VhV3IeAxY0w1cBXw8CQ45iFfBvbaXYSVNNDH7t+ArwFJf1fZGPOaMSYUm/2QaPuHZHS6s6gxJgAMdRZNWsaYBmPMlth0N9GAK7O3qvgTkXLgduApu2uxkgb6GIjInUC9MWa73bXY4AvAq3YXEScjdRZN+nAbIiJVwBLgI3srGRffIXpCdvF9sROYPhXhHETkDaBkhFVPAk8QvdySNM53vMaYF2PbPEn0T/SfjWdtKv5EJAPYCDxqjOmyu554EpHVwCljTK2ILLe7HivZNg69oKDAVFVV2fLZSik1UdXW1racqxeWbWfoVVVV1NTU2PXxSik1IZ2vS61eQ1dKqXEwEAzz4rZ6/sdTH/Leofh07dVr6EopFSfGGHb4O9lQW8eL207SPRCiIi+VnsHQhX94DDTQlVLKYq09gzy/tZ4NNX72N3WT4nawan4p9/nKuWpaftwekamBrpRSFgiFI7xzsJlnNvv5zb4mgmHD4ooc/vHuBaxeVEpWijvuNWigK6XUJTjS3MOGWj8ba/2c6h4kP93DQ9dUsdZXwezizHGtRQNdKaUuUu9giF/ubGBDTR2bj7XjdAgr5hRxv6+cFXOLcDvtGW+iga6UUqNgjKHmeDvPbK7jlzsb6AuEmV6YzuMr53L30jKKMlPsLlEDXSmlzqepa4CNW/xsqPFztKWXdI+TNYumsNZXwdLKHETic4NzLDTQlVLqLIFQhN/ua+KZGj9v7T9FxMAV0/J4eMVMVi0oIc2TmNFpaVWx9qM1RBtXrbZy30opFW/7GrvYUOPn+a31tPUGKMlK4UvLZ3DfsgqmFaTbXd4FWf2/maH+wlkW71cppeKisz/Ipu0n2VBTxw5/J26ncGt1CWt95Vw3qxBnnMaMx4NlgT6sv/A3ga9YtV+llLJaJGL44Egrz9TU8atdjQyGIswtyeQbd1Rz5+Iy8tI9dpc4JlaeoQ/1Fx7fgZdKKTVKdW19p29w1nf0k5Xi4jOXV3C/r4LLpmQl1A3OsbAk0EfbX1hE1gHrACorK634aKWUOq+BYJhf727kmZo63jvUigh8amYBf7FyLrdWF5PidtpdomWsOkO/FlgjIquAFCBLRH5qjPn88I2MMeuB9QA+ny/pH92mlLKHMYad9Z08U/NxU6zy3FS+csts7l1WTllOqt0lxoUlgW6MeZzYg4NjZ+hfPTvMlVIq3lp7BnlhW/QG577GbrwuB6sWlLI2zk2xEkViDqZUSqlRCoUj/O5gC8/U1PHG3mhTrEUVOXzz7vncsWjKuDTFShSWB7ox5i3gLav3q5RSw43UFOsPr442xZpTMjnHZugZulJqwhi5KVYha30VrJhThMc1uR/CpoGulEpoxhhqj7fzTE0dL+/4uCnW11fO5Z4lZRRl2d8UK1FooCulEtJQU6xna/wciTXFumPhFO6/vJyllbkTfsx4PGigK6USxohNsary+NLyGaxaUEq6VyPrfPSfjlLKdvsbu3mmpu50U6ziLO+EaoqVKDTQlVK2GGqK9WxNHdtjTbFuqS5mra+C6ydYU6xEoYGulBo352qK9derq7lrycRtipUoNNCVUnHnb+/j2dozm2Ld74s2xZpfNvGbYiUKDXSlVFwMNcXaUOPnvcMtQPI2xUoUGuhKKcsYY9hV3xVrilVPV6wp1qM3zebeZWWU56bZXWJS00BXSl2ykZpirZxfwv2+Cq6anvxNsRKFBrpSakxGbIpVns0/3BVtipWdOnmaYiUKDXSl1EU52tLLhpo6Nm7x09SlTbESiQa6UuqCzm6K5RBYMaeIv11TwY1ztSlWorDqEXQVwNNAMWCA9caY71qxb6WUPUZsilWQzl/cNpd7lpZRrE2xEo5VZ+gh4DFjzBYRyQRqReR1Y8wei/avlBonp7oG2Lilng01daebYq1eWMr9vgqWTdWmWInMqkfQNQANseluEdkLlAEa6EpNANGmWKfYUFPHWweaCUeMNsWagCz/tyQiVcAS4COr962UstZQU6wXttbTGmuK9cXrp3PfsnKmF2bYXZ66SJYGuohkABuBR40xXSOsXwesA6isrLTyo5VSo9TZH+Sl7dEx40NNsW6eV8z9vgqum1WAy6k3OCcqMcZYsyMRN/Ay8GtjzL9eaHufz2dqamos+Wyl1PlFIoYPY02xXh3WFGutr4K7Fk8hP8Nrd4lqlESk1hjjG2mdVaNcBPghsHc0Ya6UGh/+9j421tazobYOf3s/mbGmWGt95Swoy9YbnEnGqksu1wIPAjtFZFts2RPGmFcs2r9SapTOboplTLQp1p9/eg6fvqxEm2IlMatGubwL6P/qlbLJSE2xynJS+fJNs7h3aTkVedoUazLQsUhKTWBtvQFe2FrPM9oUS6GBrtSEo02x1LlooCs1QZzdFCsv3cMfXF3FWl85c0uy7C5PJQANdKUSWO9giFd2NrChxs/vj7XhEFg+p4i/XVPOjXOLtSmWOoMGulIJxhjDlhPtPLPZz8s7TtIbCDOtIJ2v3TaHe5eWa1MsdU4a6EoliNNNsWrrONLcS1qsKdZaXwU+bYqlRkEDXSkbjdQU6/KqXP7khhncrk2x1EXS3xalbLC/sZsNNXU8H2uKVZTpZd3101mrTbHUJdBAV2qcdA1Em2I9U+Nne13H6aZYa33lXD+rUJtiqUumga5UHI3UFGtOcSZ/tbpam2Ipy2mgKxUHIzXFWusr535fhTbFUnGjga6URQaCYV7b08SGmjrePRRtinXtzHxtiqXGjQa6UpfgXE2x/uzGWdy3TJtiqfGlga7UGJzdFMszrCnW1doUS9nEskAXkduA7wJO4CljzLes2rdSiSAcMbxzsJkNNXW8vifaFGtheTZ/f9d81iycQnaaNsVS9rLqiUVO4PvALYAf2Cwim4wxe6zYv1J2OtbSy4baOjbW1tPYNUBumpsHr4o2xZpXqk2xVOKw6gz9CuCQMeYIgIj8ArgT0EBXE9JITbFumF3IN+6o5qZ52hRLJSarAr0MqBs27weutGjfZ3j7QDO/2tUQj10rBUD3QIg39506oynWPUvKKcnWplgqsY3rTVERWQesA6isrBzTPk609vKbvaesLEupMzgdwqoFpdx/uTbFUhOLVYFeD1QMmy+PLTuDMWY9sB7A5/OZsXzQg1dX8eDVVWP5UaWUSmpWXQjcDMwSkWki4gE+C2yyaN9KKaVGQYwZ04nyJ3cksgr4DtFhiz8yxnzzAts3A8ct+fDxVQC02F3EONNjnhwm2zFP1OOdaowpHGmFZYE+WYhIjTHGZ3cd40mPeXKYbMecjMerY6+UUipJaKArpVSS0EC/eOvtLsAGesyTw2Q75qQ7Xr2GrpRSSULP0JVSKklooF8CEXlMRIyIFNhdSzyJyLdFZJ+I7BCR50Ukx+6a4kVEbhOR/SJySES+bnc98SYiFSLypojsEZHdIvJlu2saLyLiFJGtIvKy3bVYRQN9jESkArgVOGF3LePgdWC+MWYhcAB43OZ64mJY19CVQDXwgIhU21tV3IWAx4wx1cBVwMOT4JiHfBnYa3cRVtJAH7t/A74GJP1NCGPMa8aYUGz2Q6KtHZLR6a6hxpgAMNQ1NGkZYxqMMVti091EA67M3qriT0TKgduBp+yuxUoa6GMgIncC9caY7XbXYoMvAK/aXUScjNQ1NOnDbYiIVAFLgI/srWRcfIfoCVnE7kKspI+gOwcReQMoGWHVk8ATRC+3JI3zHa8x5sXYNk8S/RP9Z+NZm4o/EckANgKPGmO67K4nnkRkNXDKGFMrIsvtrsdKGujnYIy5eaTlIrIAmAZsj7VVLQe2iMgVxpjGcSzRUuc63iEi8hCwGrjJJO9Y11F1DU02IuImGuY/M8Y8Z3c94+BaYE2s/1QKkCUiPzXGfN7mui6ZbePQCwoKTFVVlS2frZRSE1VtbW3LuZpz2XaGXlVVRU1NjV0fr5RStugLhHA6BK/LOaafF5FzdqnVm6JKKRVnxhg2H2vja89u5/J/eINf7ojPYzT1GrpSSsVJQ2c/z22p59laP0dbekn3OLl9YSlzS7Li8nka6EopZaGBYJjX9zSxodbPuwebiRi4cloeD6+Yycr5JaR74xe7GuhKKXWJjDFs93fybG0dm7adpGsgRFlOKo+smMm9y8qZmp8+LnVooCul1Bid6h7g+dgllYOnevC6HKycX8JaXwVXT8/H4ZBxrUcDXSmlLsJgKMxv955iQ62ftw80E44Ylk3N5Z/uWcDtC0vJSnHbVpsGulJKXYAxht0nu3i21s8L2+rp6AtSkpXCF6+fzr3LyplRmGF3iYAGulJKnVNLzyAvbI1eUtnX2I3H5eDW6mLW+ir41MwCnON8SeVCNNCVUmqYYDjCm/uil1Te3HeKUMSwqCKHv79rPmsWTiE7zb5LKhdiaaDH+knXEO1EuNrKfSulVDztbehiQ42fF7fV09oboCDDyxc+NY37lpUzuzjT7vJGxeoz9KGG8fEZNa+UUhZq7w3w4rZ6nt3iZ1d9F26ncPO8Yu5bVs4NswtxOSfWl+ktC/RhDeO/CXzFqv0qpZSVQuEI7xxsZkONnzf2NhEMGy6bksXf3FHNmsVl5KV77C5xzKw8Qx9qGH/Ov01EZB2wDqCystLCj1ZKqfM72NTNs7V+nttaT3P3IHnpHh68qor7lpVTPSU5LipYEuijbRhvjFkPrAfw+XzJ2lNbKZUgOvuCbNpxkmdr/Wyv68DlEFbMLeK+ZeWsmFOExzWxLqlciFVn6EnbMF4pNbGEI4bfHWzm2Vo/r+1pIhCKMLckk7+8fR53LSmjIMNrd4lxY0mgG2MeJ/Yk+NgZ+lc1zJVS42l/Yzcbt/h5YWs9p7oHyUlz88DlFaz1VXDZlCxiTxhLajoOXSk1YbX0DLJp20k2bvGz+2QXLoewfE4R9y0rY8XcojE/RGKisjzQjTFvAW9ZvV+llIJoL5Xf7D3Fc1v8vLW/mVDEsKAsm2/cUc2aRVPIT+JLKheiZ+hKqYRnjGFrXQcba/28vKOBzv4gxVle/vi6ady7dOJ88SfeNNCVUgnL397HC1vreW5LPUdaeklxO/j0ZSXcu7ScaxOwl4rdNNCVUgmlZzDEqzsbeG5LPR8caQWiT/z5kxtmsHJBCZk2tqdNdBroSinbhSOGDw63snGLn1/taqQ/GKYqP42v3DKbu5eUUZGXZneJE4IGulLKNodOdbNxSz0vbK2noXOAzBQXdy0p475lZSytzJ0UQw2tpIGulBpXp7oHeGl7Ay9srWdnfSdOh3DD7EKevH0eN88rJsU9uYYaWkkDXSkVdz2DIV7b3cjzW+t571ALEQMLyrL5y9vnsWbxFIoyU+wuMSlooCul4iIYjvDuwRae31rPa3saGQhGKM9N5U+Xz+SuJVOYWaRDDa2mga6Usowxhm11HbywtZ6XdjTQ1hsgJ83NvUvLuXtJGcum6nXxeNJAV0pdsqMtvbywtZ4XttVzvLUPj8vBLfOKuWtJGTfMLky6roaJSgNdKTUmLT2DvLz9JM9vO8n2ug5E4Orp+Ty8Yia3zS8hS8eLjzsNdKXUqHX2B3ltdyMv7WjgvUMthCOGeaVZPLFqLmsWlVGSrTc37aSBrpQ6r75AiEuXQm8AAApASURBVDf2nuKl7Sd5e38zgXD05ua666dz1+Iy5pTozc1EoYGulPqEgWCYtw8089L2k/xm7yn6g2GKMr18/qqp3LGolMUVOXpzMwFZ9Qi6CuBpoBgwwHpjzHet2LdSanwEwxHeO9TCS9sbeG13I92DIfLSPdyztIw7Fk3h8qo8bYaV4Kw6Qw8BjxljtohIJlArIq8bY/ZYtH+lVByEI4bNx9rYtP0kr+5soL0vSKbXxafnl3DHoilcMyMft1NHqEwUVj2CrgFoiE13i8heoAzQQFcqwYTCET462sYrOxv49e4mWnoGSXU7ubm6mDsWlnLDnMJJ96SfZGH5NXQRqQKWAB9ZvW+l1NgEQhHeO9zCr3Y28tqeRtr7gqS6ndw4t4jb5pdw07wi0jx6S22is/TfoIhkABuBR40xXSOsXwesA6isrLTyo5VSZxkIhnnnQDO/2tXI63ub6B4IkeF1cfO8Im6bX8oNswtJ9eiZeDKxLNBFxE00zH9mjHlupG2MMeuB9QA+n89Y9dlKqajewRBvH2jmlZ0NvLnvFL2BMNmpbj59WQmrFpRw7cwCvZySxKwa5SLAD4G9xph/tWKfSqnRaeoa4I29Tby+p4n3D7USCEfIT/ewZnEZK+eXcLXe2Jw0rDpDvxZ4ENgpIttiy54wxrxi0f6VUjHGGPY1dvPGnibe2NvEdn8nAJV5aTx49VRuqS7GNzUXl4b4pGPVKJd3AR2gqlScBMMRfn+0jddjIe5v70cEFlfk8OefnsOt1cXMLMrQL/tMcnpbW6kE1dDZzzsHmnlrfzPvHmqheyCE1+XgulkFPLJiJjfOK9IHQ6gzaKArlSACoQg1x9t4e38zbx9oZl9jNwAlWSncvqCUFXOLuG5WgQ4vVOekvxlK2aiurY93DkbPwt8/1EJvIIzbKfim5vH4yrksn1PE7GK9lKJGRwNdqXHU3D3I+4db+OBwK+8dbqGurR+AspxU7lxSxvLZhVwzs4AMr/6nqS6e/tYoFUed/UE+OtLK+4dbef9wCweaegDITHFx1fR8/vjaaVw7s0BvaCpLaKArZaFT3QPUHmtn87F2ao63sau+k4iBFLeDy6vyuHtJOdfMyGd+WbZ2LlSW00BXaoyMMRxu7qXmWNvpAD/e2geA1+VgcUUOj6yYyTUzC1hSmaPf0FRxp4Gu1Ci19QbY7u9gR10nO/wdbK3roK03AEBeugff1Fw+f+VUfFW5XDYlWx+MrMadBrpSI+gZDLGrvpPtdR3s8Hey3d+Bvz16A1MEZhRmcOPcIi6vysVXlcf0gnS9Bq5sp4GuJrVIxFDX3sfehm72NXaxL/Z+vK0PE2sfV56byqLyHB68aioLy3OYX5ZFpj7RXiUgDXQ1KUQihsauAQ4393CkuZf9Td3sa+hif2M3vYEwED3znpafTvWULO5ZWs6CsmwWlmeTn+G1uXqlRkcDXSWV7oEgJ9r6ONLcezq8h977g+HT22WluJhXmsVaXwVzSzKZW5rF7OIM/RammtD0t1dNKAPBMPUd/dS19VHX3o+/rY+69j7q2vqpa++joy94eluR6OWS6QUZXDktn+mF6cwozGBGYTqFmV695q2Sjga6SgjGGNp6AzR1DdLUNUBj1wBNsVdj58Dp5a2xUSVDPE4H5bmplOelsbA8m4q8NCpy05hRlE5Vfjopbh0qqCYPK59YdBvwXcAJPGWM+ZZV+1YTizGG3kCY7oEgnf1B2noDn3i19gZo64nN9wVo7w0Qipz5ECsRyE/3UpzlpTQ7hcWVOZRkpVCem3o6uIsyvTj0CzpKAdY9scgJfB+4BfADm0VkkzFmjxX7V/FljCEQjjAQiNAXDNEXCNMfCEffg2H6A9FlQ8u7B0N09QfpHgjRNRCkeyBIV3+I7sHY+0CQyHkeMJid6iY/3UNeuoep+WksnZpDbpqHwkwvJVkpFGenUJyVQlGmV5+0o9RFsOoM/QrgkDHmCICI/AK4E5jwgW6MwRgwQCQ2HYmNZxuaNrHtIgYwYDCEI9FXKHLmdMQYQuHYMmMIRyKEIxCKRE5vd3rbs37+4/1FCIQNgVAk+gqHCcbmB08vixCMvQ9tN3jWsoFgLLiDYcLnS+ARZHpdZKW6yUxxkZXiZkpOCpkpmWSluMhMcZOVGntPcZOb7iY/3UteuofcNLc+SUepOLEq0MuAumHzfuBKi/Z9hp///gQ/ePvwx2FqYqHL2QE7fHk0bM1Z6yKx8I3Ofzw9fB8TgdMhuJ2Cx+nA43LidTnwuBzRZS5HbLmDbI8bz7BlKW4nqR4nqW4naR4nqR4XaZ7odEpsWZrHSarbRerQtMdJuselfUiUSkDjelNURNYB6wAqKyvHtI+iTC+LK3JwiCDRfSISff6dY2haYsuJTn9yW8ExfLvYsui2H0+PtI+h67Vn7jc6DR//jMspOERwOQTnsJfL4cDpAKfDgcshOBwjbRP7WeewaYcDp1NwSnSboZD2uBwarkopwLpArwcqhs2Xx5adwRizHlgP4PP5xnT+e9O8Ym6aVzyWH1VKqaRm1cXMzcAsEZkmIh7gs8Ami/atlFJqFMRYdKFYRFYB3yE6bPFHxphvXmD7ZuC4JR8+vgqAFruLGGd6zJPDZDvmiXq8U40xhSOtsCzQJwsRqTHG+OyuYzzpMU8Ok+2Yk/F4dfyYUkolCQ10pZRKEhroF2+93QXYQI95cphsx5x0x6vX0JVSKknoGbpSSiUJDfRLICKPiYgRkQK7a4knEfm2iOwTkR0i8ryI5NhdU7yIyG0isl9EDonI1+2uJ95EpEJE3hSRPSKyW0S+bHdN40VEnCKyVURetrsWq2igj5GIVAC3AifsrmUcvA7MN8YsBA4Aj9tcT1wM6xq6EqgGHhCRanurirsQ8Jgxphq4Cnh4EhzzkC8De+0uwkoa6GP3b8DXiDZiTGrGmNeMMaHY7IdEWzsko9NdQ40xAWCoa2jSMsY0GGO2xKa7iQZcmb1VxZ+IlAO3A0/ZXYuVNNDHQETuBOqNMdvtrsUGXwBetbuIOBmpa2jSh9sQEakClgAf2VvJuPgO0ROyiN2FWEkfQXcOIvIGUDLCqieBJ4hebkka5zteY8yLsW2eJPon+s/GszYVfyKSAWwEHjXGdNldTzyJyGrglDGmVkSW212PlTTQz8EYc/NIy0VkATAN2B57yHA5sEVErjDGNI5jiZY61/EOEZGHgNXATSZ5x7qOqmtoshERN9Ew/5kx5jm76xkH1wJrYv2nUoAsEfmpMebzNtd1yXQc+iUSkWOAzxgzEZv8jErsebH/CtxgjGm2u554EREX0Zu+NxEN8s3A54wxu20tLI4kelbyE6DNGPOo3fWMt9gZ+leNMavtrsUKeg1djcb3gEzgdRHZJiI/sLugeIjd+H0E+DXRm4PPJHOYx1wLPAjcGPt3uy125qomID1DV0qpJKFn6EoplSQ00JVSKklooCulVJLQQFdKqSShga6UUklCA10ppZKEBrpSSiUJDXSllEoS/x9s9sK8HUgyJAAAAABJRU5ErkJggg==\n",
+            "text/plain": [
+              "<Figure size 432x288 with 3 Axes>"
+            ]
+          },
+          "metadata": {
+            "tags": [],
+            "needs_background": "light"
+          }
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "QlSxCZG_mi6E"
+      },
+      "source": [
+        "### Broadcasting\n",
+        "With broadcasting, you can generally apply two-tensor element-wise operations if one\n",
+        "tensor has shape $(a, b, … n, n + 1, … m)$ and the other has shape $(n, n + 1, … m)$. \n",
+        "The broadcasting will then automatically happen for axes $a$ through $n - 1$.\n",
+        "\n",
+        "The following example applies the element-wise maximum operation to two tensors of different shapes via broadcasting:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "CrbxM5FUmi6E",
+        "outputId": "e6b237d3-8b3e-443f-b03b-16dfd0c2d7fe"
+      },
+      "source": [
+        "import numpy as np\n",
+        "x = np.random.random((64, 3, 32, 10)) # x is a random tensor with shape (64, 3, 32, 10).\n",
+        "y = np.random.random((32, 10)) # y is a random tensor with shape (32, 10).\n",
+        "z = np.maximum(x, y) # The output z has shape (64, 3, 32, 10) like x\n",
+        "z.shape"
+      ],
+      "execution_count": 46,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "(64, 3, 32, 10)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 46
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "6OtBBjebmi6E"
+      },
+      "source": [
+        "import numpy as np\n",
+        "x = np.random.random((3,32,10))\n",
+        "y = np.random.random((16,10))\n",
+        "#np.dot(x,y.T).shape # what the shape is going to be?"
+      ],
+      "execution_count": 47,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "V551P244wNiz"
+      },
+      "source": [
+        "## Layers and training"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "qzdgnsT5wlnd"
+      },
+      "source": [
+        "Let's build our first network:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "3Mbyaw3umi6E"
+      },
+      "source": [
+        "from keras import models\n",
+        "from keras import layers\n",
+        "\n",
+        "network = models.Sequential()\n",
+        "network.add(layers.Dense(512, activation='relu', input_shape=(28 * 28,)))\n",
+        "network.add(layers.Dense(128, activation='relu'))\n",
+        "network.add(layers.Dense(10, activation='softmax'))"
+      ],
+      "execution_count": 67,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "N5Jwvw0qw-qH"
+      },
+      "source": [
+        "This is equivalent to \n",
+        "```python\n",
+        "# Creating 3 layers\n",
+        "layer1 = layers.Dense(512, activation='relu', input_shape=(28 * 28,)))\n",
+        "layer2 = layers.Dense(128, activation='relu'))\n",
+        "layer3 = layers.Dense(10, activation='softmax'))\n",
+        "\n",
+        "# Which you then call on a test input\n",
+        "x = tf.ones((3, 3))\n",
+        "y = layer3(layer2(layer1(x)))}\n",
+        "```"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "6IIouS-GycY5"
+      },
+      "source": [
+        "A Sequential model is not appropriate when:\n",
+        "\n",
+        "- Your model has multiple inputs or multiple outputs\n",
+        "- Any of your layers has multiple inputs or multiple outputs\n",
+        "- You need to do layer sharing\n",
+        "- You want non-linear topology (e.g. a residual connection, a multi-branch model)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "EPME9DMHmi6F"
+      },
+      "source": [
+        "Here our network consists of a sequence of two `Dense` layers, which are densely-connected (also called \"fully-connected\") neural layers. \n",
+        "The second (and last) layer is a 10-way \"softmax\" layer, which means it will return an array of 10 probability scores (summing to 1). Each \n",
+        "score will be the probability that the current digit image belongs to one of our 10 digit classes.\n",
+        "\n",
+        "To make our network ready for training, we need to pick three more things, as part of \"compilation\" step:\n",
+        "\n",
+        "* A loss function: this is how the network will be able to measure how good a job it is doing on its training data, and thus how it will be \n",
+        "able to steer itself in the right direction.\n",
+        "* An optimizer: this is the mechanism through which the network will update itself based on the data it sees and its loss function.\n",
+        "* Metrics to monitor during training and testing. Here we will only care about accuracy (the fraction of the images that were correctly \n",
+        "classified)."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "SrOfsCGrmi6F"
+      },
+      "source": [
+        "network.compile(optimizer='rmsprop',\n",
+        "                loss='categorical_crossentropy',\n",
+        "                metrics=['accuracy'])"
+      ],
+      "execution_count": 68,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "YyrFWp3Xmi6F"
+      },
+      "source": [
+        "\n",
+        "Before training, we will preprocess our data by reshaping it into the shape that the network expects, and scaling it so that all values are in \n",
+        "the `[0, 1]` interval. Previously, our training images for instance were stored in an array of shape `(60000, 28, 28)` of type `uint8` with \n",
+        "values in the `[0, 255]` interval. We transform it into a `float32` array of shape `(60000, 28 * 28)` with values between 0 and 1."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "JgucJi1xmi6F",
+        "outputId": "e3f6c98f-00bf-4d7f-821f-bdbde804ec62"
+      },
+      "source": [
+        "train_images.reshape((-1,28*28)).shape"
+      ],
+      "execution_count": 49,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "(60000, 784)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 49
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "6w06wFYSmi6F"
+      },
+      "source": [
+        "train_images = train_images.reshape((60000, 28 * 28))\n",
+        "train_images = train_images.astype('float32') / 255\n",
+        "\n",
+        "test_images = test_images.reshape((10000, 28 * 28))\n",
+        "test_images = test_images.astype('float32') / 255"
+      ],
+      "execution_count": 59,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "F3L1fvF_mi6F"
+      },
+      "source": [
+        "We also need to categorically encode the labels:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "-KizzOMimi6F"
+      },
+      "source": [
+        "from keras.utils import to_categorical\n",
+        "\n",
+        "train_labels = to_categorical(train_labels)\n",
+        "test_labels = to_categorical(test_labels)"
+      ],
+      "execution_count": 60,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "HaBKqPT20d0L",
+        "outputId": "814d0307-73ea-4951-abab-82565dd24ed5"
+      },
+      "source": [
+        "train_labels.shape"
+      ],
+      "execution_count": 65,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "(60000, 10)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 65
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "ZXvYlN94mi6F"
+      },
+      "source": [
+        "We are now ready to train our network, which in Keras is done via a call to the `fit` method of the network: \n",
+        "we \"fit\" the model to its training data."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "xs2kmYJZmi6F",
+        "outputId": "00acf912-0f44-49a6-a260-8b874565e0f5"
+      },
+      "source": [
+        "network.fit(train_images, train_labels, epochs=5, batch_size=128)"
+      ],
+      "execution_count": 69,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Epoch 1/5\n",
+            "469/469 [==============================] - 5s 11ms/step - loss: 0.2334 - accuracy: 0.9288\n",
+            "Epoch 2/5\n",
+            "469/469 [==============================] - 5s 11ms/step - loss: 0.0867 - accuracy: 0.9728\n",
+            "Epoch 3/5\n",
+            "469/469 [==============================] - 5s 11ms/step - loss: 0.0573 - accuracy: 0.9821\n",
+            "Epoch 4/5\n",
+            "469/469 [==============================] - 5s 11ms/step - loss: 0.0410 - accuracy: 0.9873\n",
+            "Epoch 5/5\n",
+            "469/469 [==============================] - 5s 11ms/step - loss: 0.0292 - accuracy: 0.9908\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "<tensorflow.python.keras.callbacks.History at 0x7fa5634ee6a0>"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 69
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "OspnDZrxmi6F"
+      },
+      "source": [
+        "Two quantities are being displayed during training: the \"loss\" of the network over the training data, and the accuracy of the network over \n",
+        "the training data.\n",
+        "\n",
+        "We quickly reach an accuracy of 0.99 (i.e. 99%) on the training data. Now let's check that our model performs well on the test set too:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "AdB5a2QKmi6F",
+        "outputId": "3e779926-b536-413a-8d9e-e764135e8254"
+      },
+      "source": [
+        "test_loss, test_acc = network.evaluate(test_images, test_labels)"
+      ],
+      "execution_count": 70,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "313/313 [==============================] - 1s 2ms/step - loss: 0.0846 - accuracy: 0.9771\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "Qf8jS5Xgmi6F",
+        "outputId": "4fb9f72f-3b55-4dc7-e70c-b28e2217d1a6"
+      },
+      "source": [
+        "print('test_acc:', test_acc)\n",
+        "test_loss\n",
+        "#network.history.history"
+      ],
+      "execution_count": 73,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "test_acc: 0.9771000146865845\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "0.08457676321268082"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 73
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "W63n3qT5mi6F"
+      },
+      "source": [
+        "\n",
+        "Our test set accuracy turns out to be 97.8% -- that's quite a bit lower than the training set accuracy. \n",
+        "This gap between training accuracy and test accuracy is an example of \"overfitting\", \n",
+        "the fact that machine learning models tend to perform worse on new data than on their training data. \n",
+        "Overfitting will be a central topic in chapter 3.\n",
+        "\n",
+        "This concludes our very first example -- you just saw how we could build and a train a neural network to classify handwritten digits, in \n",
+        "less than 20 lines of Python code. In the next chapter, we will go in detail over every moving piece we just previewed, and clarify what is really \n",
+        "going on behind the scenes. You will learn about \"tensors\", the data-storing objects going into the network, about tensor operations, which \n",
+        "layers are made of, and about gradient descent, which allows our network to learn from its training examples."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "PBy9GLqMmi6F"
+      },
+      "source": [
+        "## Ways of defining networks\n",
+        "Using the `sequential` class by passing a list of layers to the Sequential constructor:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "6lEkMnuj2Swa"
+      },
+      "source": [
+        "from keras import models\n",
+        "from keras import layers\n",
+        "\n",
+        "model = keras.Sequential(\n",
+        "    [\n",
+        "        layers.Dense(2, activation=\"relu\", name=\"layer1\"),\n",
+        "        layers.Dense(3, activation=\"relu\"),\n",
+        "        layers.Dense(4),\n",
+        "    ]\n",
+        ")"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "LKKbz3yj2fLn"
+      },
+      "source": [
+        "or via the `add()` method:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "pvkoyUy_mi6F"
+      },
+      "source": [
+        "model = models.Sequential()\n",
+        "model.add(layers.Dense(32, activation='relu', input_shape=(784,)))\n",
+        "model.add(layers.Dense(10, activation='softmax'))"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "s7djWU3Rmi6F"
+      },
+      "source": [
+        "Or using the [functional API](https://keras.io/guides/functional_api):"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "qp076jjqmi6F"
+      },
+      "source": [
+        "input_tensor = layers.Input(shape=(784,))\n",
+        "x = layers.Dense(32, activation='relu')(input_tensor)\n",
+        "output_tensor = layers.Dense(10, activation='softmax')(x)\n",
+        "model = models.Model(inputs=input_tensor, outputs=output_tensor)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "CJuXQQAEmi6F"
+      },
+      "source": [
+        "With the functional API, you’re manipulating the data tensors that the model processes\n",
+        "and applying layers to this tensor as if they were functions."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "wQTpNwXVmi6F"
+      },
+      "source": [
+        "Then we need to configure the learning process, i.e., specify:\n",
+        "- the optimizer\n",
+        "- loss function(s)\n",
+        "- the metrics to monitor during training"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "VPg9rNzwmi6F"
+      },
+      "source": [
+        "from keras import optimizers\n",
+        "model.compile(optimizer=optimizers.RMSprop(lr=0.001),\n",
+        "                loss='mse',\n",
+        "                metrics=['accuracy'])"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "FR3LCryBmi6F"
+      },
+      "source": [
+        "Lastly, pass Numpy arrays of input data (and the corresponding target data) to the model via the `fit()` method:"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "scrolled": true,
+        "id": "t4C5ce8wmi6F"
+      },
+      "source": [
+        "model.fit(input_tensor, target_tensor, batch_size=128, epochs=10)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "vKAJyheSmi6F"
+      },
+      "source": [
+        "## Tensors"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "dDTRicnNmi6F",
+        "outputId": "a6991771-badc-4531-eecc-74e4991bcda4"
+      },
+      "source": [
+        "import numpy as np\n",
+        "\n",
+        "x= np.array(12)\n",
+        "print(x.ndim)\n",
+        "x"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "0\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array(12)"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 56
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "qziXad2Fmi6F",
+        "outputId": "d9b8016e-5d9e-4b1e-c491-68d01ed1c67b"
+      },
+      "source": [
+        "x = np.array([12,3,6,14])\n",
+        "print(x.ndim)\n",
+        "x"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "1\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array([12,  3,  6, 14])"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 57
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "iarhDFcwmi6G",
+        "outputId": "a3b00f21-ef3e-4901-854f-706ba1f8d070"
+      },
+      "source": [
+        "x = np.array([[5, 78, 2, 34, 0],\n",
+        "            [6, 79, 3, 35, 1],\n",
+        "            [7, 80, 4, 36, 2]])\n",
+        "print(x.ndim)\n",
+        "x"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "2\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array([[ 5, 78,  2, 34,  0],\n",
+              "       [ 6, 79,  3, 35,  1],\n",
+              "       [ 7, 80,  4, 36,  2]])"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 68
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "f6AdKYXemi6G",
+        "outputId": "7b7669cf-053b-4b53-be38-6c33a1506cb1"
+      },
+      "source": [
+        "x = np.array([[[5, 78, 2, 34, 0],\n",
+        "[6, 79, 3, 35, 1],\n",
+        "[7, 80, 4, 36, 2]],\n",
+        "[[5, 78, 2, 34, 0],\n",
+        "[6, 79, 3, 35, 1],\n",
+        "[7, 80, 4, 36, 2]],\n",
+        "[[5, 78, 2, 34, 0],\n",
+        "[6, 79, 3, 35, 1],\n",
+        "[7, 80, 4, 36, 2]]])\n",
+        "x.ndim"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "3"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 69
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "6jpm858Gmi6G"
+      },
+      "source": [
+        "In deep learning, you’ll generally manipulate tensors that are 0D to 4D, although you may go up to\n",
+        "5D if you process video data."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "c0qloGi8mi6G"
+      },
+      "source": [
+        "from keras.datasets import mnist\n",
+        "\n",
+        "(train_images, train_labels), (test_images, test_labels) = mnist.load_data()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "4JO3OoM5mi6G",
+        "outputId": "4a484c5d-5000-41ab-df0b-d911b848057b"
+      },
+      "source": [
+        "my_slice = train_images[10:100]\n",
+        "my_slice = train_images[10:100,:,:]\n",
+        "my_slice = train_images[10:100,0:28,0:28]\n",
+        "my_slice = train_images[:,7:-7,0:28]\n",
+        "print(my_slice.shape)"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "(90, 28, 28)\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "FCP8YLhPmi6G"
+      },
+      "source": [
+        "batch = train_images[:128]"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "r8QgCokhmi6G"
+      },
+      "source": [
+        "Let’s make data tensors more concrete with a few examples similar to what you’ll\n",
+        "encounter later. The data you’ll manipulate will almost always fall into one of the following\n",
+        "categories:\n",
+        "- Vector data—2D tensors of shape `(samples, features)`\n",
+        "- Timeseries data or sequence data—3D tensors of shape `(samples, timesteps,\n",
+        "features)`\n",
+        "- Images—4D tensors of shape `(samples, height, width, channels)` or `(samples,\n",
+        "channels, height, width)`\n",
+        "- Video—5D tensors of shape `(samples, frames, height, width, channels)` or\n",
+        "`(samples, frames, channels, height, width)`"
+      ]
+    }
+  ]
+}
