@@ -19,3 +19,9 @@ Proszę policzyć true positives rate i false positives rate.
 26.01.22
 
 OK
+
+## GAN
+
+6.02.22
+
+OK
